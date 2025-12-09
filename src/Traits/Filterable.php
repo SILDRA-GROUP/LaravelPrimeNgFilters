@@ -2,8 +2,8 @@
 
 namespace FrancisBeltre\PrimeNgFilters\Traits;
 
+use FrancisBeltre\PrimeNgFilters\PrimeNgFiltersHelper;
 use Illuminate\Database\Eloquent\Builder;
-use FrancisBeltre\PrimeNgFilters\PrimeNgFilterHelper;
 
 trait Filterable
 {
@@ -24,12 +24,12 @@ trait Filterable
         $searchableFields = null
     ): Builder {
         // Apply individual filters
-        if ($filters = PrimeNgFilterHelper::getFilters($requestData)) {
+        if ($filters = PrimeNgFiltersHelper::getFilters($requestData)) {
             $query = $this->applyFilters($query, $filters);
         }
 
         // Apply global search
-        if ($globalFilter = PrimeNgFilterHelper::getGlobalFilter($requestData)) {
+        if ($globalFilter = PrimeNgFiltersHelper::getGlobalFilter($requestData)) {
             $fields = $this->resolveSearchableFields($searchableFields, $requestData);
             if (!empty($fields)) {
                 $query = $this->applyGlobalFilter($query, $globalFilter, $fields);
@@ -37,7 +37,7 @@ trait Filterable
         }
 
         // Apply sorting
-        if ($sorting = PrimeNgFilterHelper::getSorting($requestData)) {
+        if ($sorting = PrimeNgFiltersHelper::getSorting($requestData)) {
             $query->orderBy($sorting['field'], $sorting['direction']);
         }
 

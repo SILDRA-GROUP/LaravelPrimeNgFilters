@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5bf44c70e67679de9c0e0971c6bccbe9",
+    "content-hash": "7ce1247141a5d0426f9b4d281b312952",
     "packages": [
         {
             "name": "brick/math",
@@ -1348,14 +1348,60 @@
             "time": "2024-11-21T01:49:47+00:00"
         }
     ],
-    "packages-dev": [],
+    "packages-dev": [
+        {
+            "name": "francis-beltre/prime-ng-filters",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Badnameless/LaravelPrimeNgFilters.git",
+                "reference": "91548bb6adee2159bf5a6cf06e01a9a5ae09ed54"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Badnameless/LaravelPrimeNgFilters/zipball/91548bb6adee2159bf5a6cf06e01a9a5ae09ed54",
+                "reference": "91548bb6adee2159bf5a6cf06e01a9a5ae09ed54",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/database": "^10.0|^11.0|^12.0",
+                "illuminate/support": "^10.0|^11.0|^12.0",
+                "php": "^8.1|^8.2"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "FrancisBeltre\\PrimeNgFilters\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Francis Beltre",
+                    "email": "francis.beltre.t@gmail.com"
+                }
+            ],
+            "description": "A package to apply PrimeNG filters to your Laravel queries",
+            "support": {
+                "issues": "https://github.com/Badnameless/LaravelPrimeNgFilters/issues",
+                "source": "https://github.com/Badnameless/LaravelPrimeNgFilters/tree/main"
+            },
+            "time": "2025-12-08T21:56:53+00:00"
+        }
+    ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "francis-beltre/prime-ng-filters": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.1"
+        "php": "^8.1|^8.2"
     },
     "platform-dev": {},
     "plugin-api-version": "2.6.0"

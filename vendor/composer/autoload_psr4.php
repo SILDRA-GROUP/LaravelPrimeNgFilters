@@ -19,7 +19,7 @@ return array(
     'Illuminate\\Database\\' => array($vendorDir . '/illuminate/database'),
     'Illuminate\\Contracts\\' => array($vendorDir . '/illuminate/contracts'),
     'Illuminate\\Container\\' => array($vendorDir . '/illuminate/container'),
-    'FrancisBeltre\\PrimeNgFilters\\' => array($baseDir . '/src'),
+    'FrancisBeltre\\PrimeNgFilters\\' => array($baseDir . '/src', $vendorDir . '/francis-beltre/prime-ng-filters/src'),
     'Doctrine\\Inflector\\' => array($vendorDir . '/doctrine/inflector/src'),
     'Carbon\\Doctrine\\' => array($vendorDir . '/carbonphp/carbon-doctrine-types/src/Carbon/Doctrine'),
     'Carbon\\' => array($vendorDir . '/nesbot/carbon/src/Carbon'),

@@ -1,6 +1,6 @@
 <?php return array(
     'root' => array(
-        'name' => 'francis-beltre/prime-ng-filters',
+        'name' => 'francis-beltre/laravel-prime-ng-filters',
         'pretty_version' => '1.0.0',
         'version' => '1.0.0.0',
         'reference' => null,
@@ -37,7 +37,7 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'francis-beltre/prime-ng-filters' => array(
+        'francis-beltre/laravel-prime-ng-filters' => array(
             'pretty_version' => '1.0.0',
             'version' => '1.0.0.0',
             'reference' => null,
@@ -45,6 +45,17 @@
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
             'dev_requirement' => false,
+        ),
+        'francis-beltre/prime-ng-filters' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '91548bb6adee2159bf5a6cf06e01a9a5ae09ed54',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../francis-beltre/prime-ng-filters',
+            'aliases' => array(
+                0 => '9999999-dev',
+            ),
+            'dev_requirement' => true,
         ),
         'illuminate/collections' => array(
             'pretty_version' => 'v11.47.0',

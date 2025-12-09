@@ -1,0 +1,25 @@
+{
+    "name": "francis-beltre/laravel-prime-ng-filters",
+    "description": "A package to apply PrimeNG filters to your Laravel queries",
+    "type": "library",
+    "version": "1.0.0",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Francis Beltre",
+            "email": "francis.beltre.t@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1|^8.2",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/database": "^10.0|^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "FrancisBeltre\\PrimeNgFilters\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

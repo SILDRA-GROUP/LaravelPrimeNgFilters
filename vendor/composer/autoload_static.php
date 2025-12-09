@@ -123,6 +123,7 @@ class ComposerStaticInit5bf44c70e67679de9c0e0971c6bccbe9
         'FrancisBeltre\\PrimeNgFilters\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
+            1 => __DIR__ . '/..' . '/francis-beltre/prime-ng-filters/src',
         ),
         'Doctrine\\Inflector\\' => 
         array (
