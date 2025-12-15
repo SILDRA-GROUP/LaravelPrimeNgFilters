@@ -12,8 +12,6 @@ class PrimeNgFiltersHelper
             'sortOrder' => 'nullable|string|in:asc,desc,1,-1',
             'globalFilter' => 'nullable|string|max:255',
             'globalFilterFields' => 'nullable|json',
-            'first' => 'nullable|integer|min:0',
-            'rows' => 'nullable|integer|min:1|max:1000',
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:500',
         ];
@@ -71,16 +69,6 @@ class PrimeNgFiltersHelper
      */
     public static function getPagination(array $requestData): array
     {
-        if (isset($requestData['first']) && isset($requestData['rows'])) {
-            $rows = max(1, (int) ($requestData['rows'] ?? 15));
-            $first = max(0, (int) ($requestData['first'] ?? 0));
-
-            return [
-                'page' => floor($first / $rows) + 1,
-                'per_page' => $rows,
-            ];
-        }
-
         return [
             'page' => (int) ($requestData['page'] ?? 1),
             'per_page' => (int) ($requestData['per_page'] ?? 15),
