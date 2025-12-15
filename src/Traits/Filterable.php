@@ -26,7 +26,9 @@ trait Filterable
 
         // Apply individual filters
         if ($filters = PrimeNgFiltersHelper::getFilters($requestData)) {
-            $query = $this->applyFilters($query, $filters);
+            if (is_array($filters) && !empty($filters)) {
+                $query = $this->applyFilters($query, $filters);
+            }
         }
 
         // Apply global search
@@ -67,10 +69,10 @@ trait Filterable
         $value = $filter['value'] ?? null;
         $operator = $filter['operator'] ?? 'equals';
 
-        if (!$field || $value === null || $value === '') {
+        if (!$field || $value === null) {
             return $query;
         }
-
+        
         switch ($operator) {
             case 'equals':
                 return $query->where($field, $value);

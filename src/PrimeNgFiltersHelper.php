@@ -24,7 +24,31 @@ class PrimeNgFiltersHelper
      */
     public static function getFilters(array $requestData): array
     {
-        return json_decode($requestData['filters'], true);
+        if (!isset($requestData['filters'])) {
+            return [];
+        }
+
+        $filtersJson = json_decode($requestData['filters'], true);
+
+        if (!$filtersJson || !is_array($filtersJson)) {
+            return [];
+        }
+
+        $transformedFilters = [];
+
+        foreach ($filtersJson as $fieldName => $filterData) {
+            if (!is_array($filterData)) {
+                continue;
+            }
+
+            $transformedFilters[] = [
+                'field' => $fieldName,
+                'value' => $filterData['value'] ?? null,
+                'operator' => $filterData['matchMode'] ?? 'equals',
+            ];
+        }
+
+        return $transformedFilters;
     }
 
     /**
@@ -76,6 +100,6 @@ class PrimeNgFiltersHelper
      */
     public static function getGlobalFilterFields(array $requestData): array
     {
-        return json_decode($requestData['globalFilterFields'], true)  ?? [];
+        return json_decode($requestData['globalFilterFields'], true) ?? [];
     }
 }
