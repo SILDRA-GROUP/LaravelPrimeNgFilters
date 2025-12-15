@@ -25,7 +25,7 @@ trait Filterable
     ): Builder {
 
         // Apply individual filters
-        if ($filters = PrimeNgFiltersHelper::getNormalizedFilters($requestData)) {
+        if ($filters = PrimeNgFiltersHelper::getFilters($requestData)) {
             $query = $this->applyFilters($query, $filters);
         }
 
