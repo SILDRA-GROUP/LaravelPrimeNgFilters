@@ -11,7 +11,7 @@ class PrimeNgFiltersHelper
             'sortField' => 'nullable|string',
             'sortOrder' => 'nullable|string|in:asc,desc,1,-1',
             'globalFilter' => 'nullable|string|max:255',
-            'globalFilterFields' => 'nullable|json',
+            'globalFilterFields' => 'nullable|array',
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:500',
         ];
@@ -88,6 +88,6 @@ class PrimeNgFiltersHelper
      */
     public static function getGlobalFilterFields(array $requestData): array
     {
-        return json_decode($requestData['globalFilterFields'], true) ?? [];
+        return $requestData['globalFilterFields'] ?? [];
     }
 }
