@@ -72,6 +72,10 @@ trait Filterable
         if (!$field || $value === null) {
             return $query;
         }
+
+        if ($field == 'global') {
+            return $query;
+        }
         
         switch ($operator) {
             case 'equals':
