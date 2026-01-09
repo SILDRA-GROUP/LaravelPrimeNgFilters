@@ -39,11 +39,28 @@ class PrimeNgFiltersHelper
                 continue;
             }
 
-            $transformedFilters[] = [
-                'field' => $fieldName,
-                'value' => $filterData['value'] ?? null,
-                'operator' => $filterData['matchMode'] ?? 'equals',
-            ];
+
+            $isMultiFilter = isset($filterData[0]) && is_array($filterData[0]);
+
+            if ($isMultiFilter) {
+                foreach ($filterData as $singleFilter) {
+                    if (!is_array($singleFilter)) {
+                        continue;
+                    }
+
+                    $transformedFilters[] = [
+                        'field' => $fieldName,
+                        'value' => $singleFilter['value'] ?? null,
+                        'operator' => $singleFilter['matchMode'] ?? 'equals',
+                    ];
+                }
+            } else {
+                $transformedFilters[] = [
+                    'field' => $fieldName,
+                    'value' => $filterData['value'] ?? null,
+                    'operator' => $filterData['matchMode'] ?? 'equals',
+                ];
+            }
         }
 
         return $transformedFilters;
