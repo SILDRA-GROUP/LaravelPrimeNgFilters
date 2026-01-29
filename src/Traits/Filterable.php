@@ -4,6 +4,7 @@ namespace FrancisBeltre\PrimeNgFilters\Traits;
 
 use FrancisBeltre\PrimeNgFilters\PrimeNgFiltersHelper;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 
 trait Filterable
 {
@@ -24,14 +25,11 @@ trait Filterable
         $searchableFields = null
     ): Builder {
 
-        // Apply individual filters
-        if ($filters = PrimeNgFiltersHelper::getFilters($requestData)) {
-            if (is_array($filters) && !empty($filters)) {
-                $query = $this->applyFilters($query, $filters);
-            }
+        $filters = PrimeNgFiltersHelper::getFilters($requestData);
+        if (!empty($filters)) {
+            $query = $this->applyFilters($query, $filters);
         }
 
-        // Apply global search
         if ($globalFilter = PrimeNgFiltersHelper::getGlobalFilter($requestData)) {
             $fields = $requestData['globalFilterFields'];
             if (!empty($fields)) {
@@ -39,17 +37,96 @@ trait Filterable
             }
         }
 
-        // Apply sorting
         if ($sorting = PrimeNgFiltersHelper::getSorting($requestData)) {
-            $query->orderBy($sorting['field'], $sorting['direction']);
+            $this->applySorting($query, $sorting['field'], $sorting['direction']);
         }
 
         return $query;
     }
 
-    /**
-     * Apply individual filters to query
-     */
+    protected function applySorting(Builder $query, string $field, string $direction): void
+    {
+        if (!$this->isRelationshipField($field)) {
+            $query->orderBy($field, $direction);
+            return;
+        }
+
+        $this->applyRelationshipSorting($query, $field, $direction);
+    }
+
+    protected function applyRelationshipSorting(Builder $query, string $field, string $direction): void
+    {
+        $parsed = $this->parseRelationshipField($field);
+        $relations = explode('.', $parsed['relationPath']);
+        $column = $parsed['column'];
+        $model = $query->getModel();
+
+        $subQuery = $this->buildSortSubquery($model, $relations, $column);
+
+        if ($subQuery !== null) {
+            $query->orderBy($subQuery, $direction);
+        }
+    }
+
+    protected function buildSortSubquery($model, array $relations, string $column): ?Builder
+    {
+        $currentModel = $model;
+        $parentTable = $model->getTable();
+        $joinConditions = [];
+
+        foreach ($relations as $relationName) {
+            if (!method_exists($currentModel, $relationName)) {
+                return null;
+            }
+
+            $relation = $currentModel->{$relationName}();
+            $relatedModel = $relation->getRelated();
+            $relationType = class_basename($relation);
+
+            $joinInfo = match ($relationType) {
+                'BelongsTo' => [
+                    'table' => $relatedModel->getTable(),
+                    'localKey' => $relation->getForeignKeyName(),
+                    'foreignKey' => $relation->getOwnerKeyName(),
+                    'parentTable' => $currentModel->getTable(),
+                ],
+                'HasOne' => [
+                    'table' => $relatedModel->getTable(),
+                    'localKey' => $currentModel->getKeyName(),
+                    'foreignKey' => $relation->getForeignKeyName(),
+                    'parentTable' => $currentModel->getTable(),
+                ],
+                default => null,
+            };
+
+            if ($joinInfo === null) {
+                return null;
+            }
+
+            $joinConditions[] = $joinInfo;
+            $currentModel = $relatedModel;
+        }
+
+        $subQuery = $currentModel->newQuery()->select($column)->limit(1);
+
+        $this->applySubqueryJoinConditions($subQuery, $joinConditions, $parentTable);
+
+        return $subQuery;
+    }
+
+    protected function applySubqueryJoinConditions(Builder $subQuery, array $joinConditions, string $rootTable): void
+    {
+        foreach ($joinConditions as $index => $condition) {
+            $isFirst = $index === 0;
+            $previousTable = $isFirst ? $rootTable : $joinConditions[$index - 1]['table'];
+
+            $subQuery->whereColumn(
+                "{$condition['table']}.{$condition['foreignKey']}",
+                "{$previousTable}.{$condition['localKey']}"
+            );
+        }
+    }
+
     protected function applyFilters(Builder $query, array $filters): Builder
     {
 
@@ -60,9 +137,6 @@ trait Filterable
         return $query;
     }
 
-    /**
-     * Apply a single filter
-     */
     protected function applyFilter(Builder $query, array $filter): Builder
     {
         $field = $filter['field'] ?? null;
@@ -76,38 +150,76 @@ trait Filterable
         if ($field == 'global') {
             return $query;
         }
-        
-        switch ($operator) {
-            case 'equals':
-                return $query->where($field, $value);
-            case 'contains':
-                return $query->where($field, 'LIKE', "%{$value}%");
-            case 'startsWith':
-                return $query->where($field, 'LIKE', "{$value}%");
-            case 'endsWith':
-                return $query->where($field, 'LIKE', "%{$value}");
-            case 'lt':
-                return $query->where($field, '<', $value);
-            case 'lte':
-                return $query->where($field, '<=', $value);
-            case 'gt':
-                return $query->where($field, '>', $value);
-            case 'gte':
-                return $query->where($field, '>=', $value);
-            case 'in':
-                return $query->whereIn($field, (array) $value);
-            case 'notIn':
-                return $query->whereNotIn($field, (array) $value);
-            case 'between':
-                return $query->whereBetween($field, (array) $value);
-            default:
-                return $query;
+
+        if ($this->isRelationshipField($field)) {
+            return $this->applyRelationshipFilter($query, $field, $value, $operator);
         }
+
+        $this->applyFilterCondition($query, $field, $value, $operator);
+
+        return $query;
     }
 
-    /**
-     * Apply global search across multiple fields
-     */
+    protected function isRelationshipField(string $field): bool
+    {
+        return str_contains($field, '.');
+    }
+
+    protected function parseRelationshipField(string $field): array
+    {
+        $parts = explode('.', $field);
+        $column = array_pop($parts);
+        $relationPath = implode('.', $parts);
+
+        return [
+            'relationPath' => $relationPath,
+            'column' => $column,
+        ];
+    }
+
+    protected function applyRelationshipFilter(
+        Builder $query,
+        string $field,
+        mixed $value,
+        string $operator
+    ): Builder {
+        $parsed = $this->parseRelationshipField($field);
+        $relationPath = $parsed['relationPath'];
+        $column = $parsed['column'];
+
+        return $query->whereHas($relationPath, function ($q) use ($column, $value, $operator) {
+            $this->applyFilterCondition($q, $column, $value, $operator);
+        });
+    }
+
+    protected function applyFilterCondition(
+        Builder|QueryBuilder $query,
+        string $field,
+        mixed $value,
+        string $operator
+    ): void {
+        match ($operator) {
+            'equals' => $query->where($field, $value),
+            'notEquals' => $query->where($field, '!=', $value),
+            'contains' => $query->where($field, 'LIKE', "%{$value}%"),
+            'notContains' => $query->where($field, 'NOT LIKE', "%{$value}%"),
+            'startsWith' => $query->where($field, 'LIKE', "{$value}%"),
+            'endsWith' => $query->where($field, 'LIKE', "%{$value}"),
+            'lt' => $query->where($field, '<', $value),
+            'lte' => $query->where($field, '<=', $value),
+            'gt' => $query->where($field, '>', $value),
+            'gte' => $query->where($field, '>=', $value),
+            'in' => $query->whereIn($field, (array) $value),
+            'notIn' => $query->whereNotIn($field, (array) $value),
+            'between' => $query->whereBetween($field, (array) $value),
+            'dateIs' => $query->whereDate($field, $value),
+            'dateIsNot' => $query->whereDate($field, '!=', $value),
+            'dateBefore' => $query->whereDate($field, '<', $value),
+            'dateAfter' => $query->whereDate($field, '>', $value),
+            default => null,
+        };
+    }
+
     protected function applyGlobalFilter(
         Builder $query,
         string $searchTerm,
@@ -119,14 +231,29 @@ trait Filterable
 
         return $query->where(function ($q) use ($searchTerm, $searchableFields) {
             foreach ($searchableFields as $field) {
-                $q->orWhere($field, 'LIKE', "%{$searchTerm}%");
+                if ($this->isRelationshipField($field)) {
+                    $this->applyRelationshipGlobalFilter($q, $field, $searchTerm);
+                } else {
+                    $q->orWhere($field, 'LIKE', "%{$searchTerm}%");
+                }
             }
         });
     }
 
-    /**
-     * Apply custom filters with configuration
-     */
+    protected function applyRelationshipGlobalFilter(
+        Builder|QueryBuilder $query,
+        string $field,
+        string $searchTerm
+    ): void {
+        $parsed = $this->parseRelationshipField($field);
+        $relationPath = $parsed['relationPath'];
+        $column = $parsed['column'];
+
+        $query->orWhereHas($relationPath, function ($q) use ($column, $searchTerm) {
+            $q->where($column, 'LIKE', "%{$searchTerm}%");
+        });
+    }
+
     public function scopeApplyCustomFilters(
         Builder $query,
         array $requestData,

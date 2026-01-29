@@ -110,6 +110,98 @@ Convert each operator to a database query.
 | `in` | `WHERE status IN ('active', 'pending')` | Value in list |
 | `notIn` | `WHERE status NOT IN ('deleted')` | Value not in list |
 | `between` | `WHERE age BETWEEN 18 AND 65` | Value in range |
+| `dateIs` | `WHERE DATE(created_at) = '2024-01-01'` | Date equals |
+| `dateIsNot` | `WHERE DATE(created_at) != '2024-01-01'` | Date not equals |
+| `dateBefore` | `WHERE DATE(created_at) < '2024-01-01'` | Date before |
+| `dateAfter` | `WHERE DATE(created_at) > '2024-01-01'` | Date after |
+| `notEquals` | `WHERE status != 'deleted'` | Not equal |
+| `notContains` | `WHERE name NOT LIKE '%test%'` | Does not contain |
+
+---
+
+## Transversal Filters (Relationship Fields)
+
+Filter on fields from related models using dot notation. This is useful when you need to filter by data that belongs to a related table.
+
+### How It Works
+
+Instead of filtering only on the main table's columns, you can filter on related model fields using the format: `relationshipName.columnName`
+
+**Example:** Filter transactions by the related bank account's number:
+
+```json
+{
+  "bankAccount.account_number": {
+    "value": "1234",
+    "matchMode": "startsWith"
+  }
+}
+```
+
+This generates a `whereHas` query:
+```sql
+WHERE EXISTS (
+  SELECT * FROM bank_accounts
+  WHERE bank_accounts.uuid = transactions.bank_account_id
+  AND account_number LIKE '1234%'
+)
+```
+
+### Nested Relationships
+
+You can filter through multiple levels of relationships using multiple dots:
+
+```json
+{
+  "bankAccount.bank.name": {
+    "value": "Chase",
+    "matchMode": "contains"
+  }
+}
+```
+
+This filters transactions where the bank account's bank has "Chase" in its name.
+
+### Requirements
+
+The relationship name must match the method name in your Laravel model:
+
+```php
+// In your Transaction model
+public function bankAccount()
+{
+    return $this->belongsTo(BankAccount::class, 'bank_account_id', 'uuid');
+}
+```
+
+### Global Search with Relationships
+
+You can also include relationship fields in the global search:
+
+```json
+{
+  "globalFilter": "john",
+  "globalFilterFields": ["description", "bankAccount.account_number", "bankAccount.account_holder_name"]
+}
+```
+
+### Sorting by Relationship Fields
+
+Sort by related model columns:
+
+```
+?sortField=bankAccount.account_number&sortOrder=asc
+```
+
+**Note:** Relationship sorting uses a correlated subquery and supports `BelongsTo` and `HasOne` relationships.
+
+### Supported Relationship Types
+
+| Feature | BelongsTo | HasOne | HasMany | BelongsToMany |
+|---------|-----------|--------|---------|---------------|
+| Filtering | ✅ | ✅ | ✅ | ✅ |
+| Global Search | ✅ | ✅ | ✅ | ✅ |
+| Sorting | ✅ | ✅ | ❌ | ❌ |
 
 ### Simple Implementation
 
@@ -317,6 +409,30 @@ Test with these URLs:
    /api/users?sortField=created_at&sortOrder=desc
    ```
    Expected: Users sorted by date, newest first
+
+7. **Transversal filter (relationship):**
+   ```
+   /api/transactions?filters={"bankAccount.account_number":{"value":"1234","matchMode":"startsWith"}}
+   ```
+   Expected: Transactions where related bank account number starts with "1234"
+
+8. **Nested relationship filter:**
+   ```
+   /api/transactions?filters={"bankAccount.bank.name":{"value":"Chase","matchMode":"contains"}}
+   ```
+   Expected: Transactions where the bank account's bank name contains "Chase"
+
+9. **Global search with relationship fields:**
+   ```
+   /api/transactions?globalFilter=john&globalFilterFields[]=description&globalFilterFields[]=bankAccount.account_holder_name
+   ```
+   Expected: Transactions with "john" in description OR in the related account holder name
+
+10. **Sorting by relationship field:**
+    ```
+    /api/transactions?sortField=bankAccount.account_number&sortOrder=asc
+    ```
+    Expected: Transactions sorted by the related bank account's account number
 
 ---
 

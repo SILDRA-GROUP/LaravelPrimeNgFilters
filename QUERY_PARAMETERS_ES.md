@@ -31,6 +31,12 @@ Aplica filtros individuales de campo a la consulta.
 | `in` | Valor en arreglo | `["active", "pending"]` |
 | `notIn` | Valor no está en arreglo | `["deleted", "archived"]` |
 | `between` | Valor entre rango | `[10, 100]` |
+| `notEquals` | No es igual a | `"deleted"` |
+| `notContains` | No contiene subcadena | `"test"` |
+| `dateIs` | Fecha es igual a | `"2024-01-01"` |
+| `dateIsNot` | Fecha no es igual a | `"2024-01-01"` |
+| `dateBefore` | Fecha anterior a | `"2024-01-01"` |
+| `dateAfter` | Fecha posterior a | `"2024-01-01"` |
 
 #### Ejemplo de Solicitud
 
@@ -39,6 +45,44 @@ GET /api/users?filters={"name":{"value":"John","matchMode":"contains"},"age":{"v
 ```
 
 Esto filtra usuarios donde `name` contiene "John" Y `age` es mayor o igual a 25.
+
+#### Filtros Transversales (Campos de Relación)
+
+Puedes filtrar por campos de modelos relacionados usando notación de punto. El formato es: `nombreRelacion.nombreColumna`
+
+**Ejemplo:**
+```json
+{
+  "bankAccount.account_number": {
+    "value": "1234",
+    "matchMode": "startsWith"
+  }
+}
+```
+
+Esto filtra registros donde el número de cuenta de la relación `bankAccount` comienza con "1234".
+
+**Relaciones Anidadas:**
+```json
+{
+  "bankAccount.bank.name": {
+    "value": "Chase",
+    "matchMode": "contains"
+  }
+}
+```
+
+Esto filtra a través de múltiples niveles de relaciones.
+
+**Nota:** El nombre antes del punto debe coincidir con el nombre del método de relación en tu modelo Laravel:
+
+```php
+// En tu modelo Transaction
+public function bankAccount()
+{
+    return $this->belongsTo(BankAccount::class, 'bank_account_id', 'uuid');
+}
+```
 
 #### Ejemplo de Múltiples Filtros
 
@@ -86,12 +130,21 @@ Especifica en qué campos buscar cuando se usa `globalFilter`.
 
 **Tipo:** Arreglo de nombres de campos
 **Requerido:** Solo cuando se usa `globalFilter`
+**Nota:** Soporta campos de relación con notación de punto
 
 #### Ejemplo de Solicitud
 
 ```
 GET /api/users?globalFilter=search_term&globalFilterFields[]=name&globalFilterFields[]=email&globalFilterFields[]=phone
 ```
+
+#### Ejemplo con Campos de Relación
+
+```
+GET /api/transactions?globalFilter=john&globalFilterFields[]=description&globalFilterFields[]=bankAccount.account_holder_name
+```
+
+Esto busca "john" en el campo `description` de la transacción O en el campo `account_holder_name` de la cuenta bancaria relacionada.
 
 ---
 
@@ -101,12 +154,21 @@ Nombre del campo por el cual ordenar los resultados.
 
 **Tipo:** Cadena
 **Requerido:** No
+**Nota:** Soporta campos de relación con notación de punto (solo relaciones `BelongsTo` y `HasOne`)
 
 #### Ejemplo de Solicitud
 
 ```
 GET /api/users?sortField=created_at
 ```
+
+#### Ejemplo con Campo de Relación
+
+```
+GET /api/transactions?sortField=bankAccount.account_number&sortOrder=asc
+```
+
+Esto ordena las transacciones por el número de cuenta de la cuenta bancaria relacionada.
 
 ---
 
@@ -178,6 +240,30 @@ GET /api/users?filters={"status":{"value":"active","matchMode":"equals"},"age":{
 - Busca "john" en los campos `name` y `email`
 - Ordena por `created_at` en orden descendente
 - Muestra página 1 con 20 elementos por página
+
+---
+
+## Ejemplo con Filtros Transversales
+
+### URL de Solicitud
+```
+GET /api/transactions?filters={"bankAccount.account_number":{"value":"1234","matchMode":"startsWith"},"amount":{"value":100,"matchMode":"gte"}}&globalFilter=deposito&globalFilterFields[]=description&globalFilterFields[]=bankAccount.account_holder_name&sortField=bankAccount.account_number&sortOrder=asc&page=1&per_page=20
+```
+
+### Desglose
+- Filtra transacciones donde el `account_number` de la cuenta bancaria relacionada comienza con "1234"
+- Y `amount` es mayor o igual a 100
+- Busca "deposito" en `description` de la transacción O en `account_holder_name` de la cuenta bancaria
+- Ordena por el `account_number` de la cuenta bancaria en orden ascendente
+- Muestra página 1 con 20 elementos por página
+
+### Tipos de Relación Soportados
+
+| Característica | BelongsTo | HasOne | HasMany | BelongsToMany |
+|----------------|-----------|--------|---------|---------------|
+| Filtrado | ✅ | ✅ | ✅ | ✅ |
+| Búsqueda Global | ✅ | ✅ | ✅ | ✅ |
+| Ordenamiento | ✅ | ✅ | ❌ | ❌ |
 
 ---
 
