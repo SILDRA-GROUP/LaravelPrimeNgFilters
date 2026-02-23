@@ -116,15 +116,25 @@ trait Filterable
 
     protected function applySubqueryJoinConditions(Builder $subQuery, array $joinConditions, string $rootTable): void
     {
-        foreach ($joinConditions as $index => $condition) {
-            $isFirst = $index === 0;
-            $previousTable = $isFirst ? $rootTable : $joinConditions[$index - 1]['table'];
+        $lastIndex = count($joinConditions) - 1;
 
-            $subQuery->whereColumn(
-                "{$condition['table']}.{$condition['foreignKey']}",
-                "{$previousTable}.{$condition['localKey']}"
+        for ($i = 0; $i < $lastIndex; $i++) {
+            $condition = $joinConditions[$i];
+            $nextCondition = $joinConditions[$i + 1];
+
+            $subQuery->join(
+                $condition['table'],
+                "{$nextCondition['table']}.{$nextCondition['foreignKey']}",
+                '=',
+                "{$condition['table']}.{$condition['foreignKey']}"
             );
         }
+
+        $firstCondition = $joinConditions[0];
+        $subQuery->whereColumn(
+            "{$firstCondition['table']}.{$firstCondition['foreignKey']}",
+            "{$rootTable}.{$firstCondition['localKey']}"
+        );
     }
 
     protected function applyFilters(Builder $query, array $filters): Builder
